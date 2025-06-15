@@ -1,214 +1,260 @@
-import { useState } from 'react';
-import * as React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TouchableHighlight, ScrollView } from 'react-native';
-import { Button } from 'react-native-paper';
-import { pizzas } from '../../assets/data/pizzas';
-import { pizzaSizes } from '../../assets/data/pizzas';
-// import Constants from 'expo-constants';
-// import { Card } from 'react-native-paper';
+import { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from "react-native";
+import { Button } from "react-native-paper";
+import { pizzas } from "../../assets/data/pizzas";
+import { pizzaSizes } from "../../assets/data/pizzas";
+import { Theme } from "../theme/Theme";
 
+export function Customize({ navigation, route }) {
+  const [selectedIngredients, setSelectedIngredients] = useState({});
+  const [total, setTotal] = useState(0);
+  const [selectedPizza, setSelectedPizza] = useState("");
+  const [selectedIngredientsList, setSelectedIngredientsList] = useState([]);
+  const [selectedSize, setSelectedSize] = useState("");
 
+  const handleIngredientSelect = (ingredient) => {
+    setTotal(total + ingredient.fee);
+    setSelectedIngredientsList([
+      ...selectedIngredientsList,
+      ingredient.ingreName,
+    ]);
+  };
 
-export function Customize({navigation, route}) {
-    const [selected, setSelected] = useState({});
-    const [total, setTotal] = useState(0);
-    const [pizzaNames, setPizzaNames] = useState('');
-    const [spices, setSpices] = useState(['']);
-    const [sizeName, setSizeName] = useState('');
+  const handleSizeSelect = (size) => {
+    const prevSize = pizzaSizes.find((s) => s.sizeName === selectedSize);
+    const newTotal = prevSize
+      ? total - prevSize.fee + size.fee
+      : total + size.fee;
 
-    const [isPress, setIsPress] = React.useState(false);
+    setTotal(newTotal);
+    setSelectedSize(size.sizeName);
+  };
 
-
-    const touchProps = {
-        activeOpacity: 1,
-        underlayColor: 'blue',
-        style: isPress ? styles.btnPress : styles.btnNormal,
-        onHideUnderlay: () => setIsPress(false),
-        onShowUnderlay: () => setIsPress(true),
-    };
-
-    
-    function ProccedToDelivery() {
-        if (total > 0) {
-            return <Button mode='outlined' color='white'
-                style={{ marginTop: 20, backgroundColor: '#064635' }} 
-                contentStyle={{paddingVertical:20}}
-                onPress={() => {
-                    navigation.navigate('Order',{
-                        orderTotal:total,
-                        orderPizzaName:pizzaNames,
-                        orderPizzaIngredents:spices,
-                        orderPizzaSize:sizeName
-                    });
-                }}
-            >Continue to delivery</Button>
-        }
-
+  const proceedToDelivery = () => {
+    if (total <= 0) {
+      Alert.alert(
+        "Selection Required",
+        "Please select a pizza and at least one ingredient"
+      );
+      return null;
     }
 
-
     return (
-        <ScrollView>
-                 <View style={styles.container}>
-            <Text style={styles.heading}>Customize your order</Text>
+      <Button
+        mode="contained"
+        style={styles.continueButton}
+        contentStyle={styles.buttonContent}
+        onPress={() => {
+          navigation.navigate("Order", {
+            total,
+            pizzaName: selectedPizza,
+            ingredients: selectedIngredientsList.join(", "),
+            size: selectedSize,
+          });
+        }}
+      >
+        Continue to delivery
+      </Button>
+    );
+  };
 
-            {/* pizza billing total */}
+  return (
+    <View style={styles.container}>
+      <Text style={styles.heading}>Customize Your Order</Text>
 
-            <View style={styles.billing}>
-                <Text style={styles.pizzaBillingTitle}>Pizza Total</Text>
-                <Text style={styles.pizzaBillingValue}>NGN{total}</Text>
-                <Text style={styles.pizzaBillingTitle}>{pizzaNames} pizza with these spices ({spices})</Text>
-            </View>
+      {/* Pizza billing total */}
+      <View style={styles.billingContainer}>
+        <Text style={styles.billingTitle}>Pizza total</Text>
+        <Text style={styles.billingAmount}>₦{total.toLocaleString()}</Text>
+        {selectedPizza ? (
+          <Text style={styles.billingDescription}>
+            {selectedPizza} with {selectedIngredientsList.length} ingredients
+          </Text>
+        ) : null}
+      </View>
 
-            {/* select a pizza to show ingredients */}
-            <ScrollView horizontal>
-                {Object.values(pizzas).map(singlePizza => (
-                    <TouchableHighlight
-                        {...touchProps}
-                        style={styles.selectedPizza}
-                        onPress={() => {
-                            setSelected(singlePizza.ingredients);
-                            setPizzaNames(singlePizza.pizzaName);
-                        }}
-                    >
-                        <Text style={styles.selectedTitle}>{singlePizza.pizzaName}</Text>
-                    </TouchableHighlight>
-                ))}
-            </ScrollView>
+      {/* Pizza selection */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.pizzaScroll}
+      >
+        {Object.values(pizzas).map((pizza) => (
+          <TouchableOpacity
+            key={pizza.pizzaName}
+            style={[
+              styles.pizzaOption,
+              selectedPizza === pizza.pizzaName && styles.selectedPizzaOption,
+            ]}
+            onPress={() => {
+              setSelectedIngredients(pizza.ingredients);
+              setSelectedPizza(pizza.pizzaName);
+            }}
+          >
+            <Text style={styles.pizzaOptionText}>{pizza.pizzaName}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
+      {/* Ingredients selection */}
+      <ScrollView style={styles.ingredientsContainer}>
+        {Object.values(selectedIngredients).map((ingredient, index) => (
+          <TouchableOpacity
+            key={`${ingredient.ingreName}-${index}`}
+            style={[
+              styles.ingredientButton,
+              selectedIngredientsList.includes(ingredient.ingreName) &&
+                styles.selectedIngredientButton,
+            ]}
+            onPress={() => handleIngredientSelect(ingredient)}
+          >
+            <Text style={styles.ingredientText}>
+              {ingredient.ingreName} (+₦{ingredient.fee.toLocaleString()})
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
-            {/* ingredients based on selected pizza */}
-            <View style={styles.pizzas}>
-                {Object.values(selected).map(item => (
-                    <TouchableOpacity
-                        style={[styles.pizza, { marginRight: Math.round(Math.random() * 100), marginLeft: Math.round(Math.random() * 100), }]}
-                        onPress={() => {
-                            setSpices(spices + ',' + ' ' + item.ingreName);
-                            setTotal(total + item.fee);
-                        }}
-                    >
-
-
-                        <Text style={styles.pizzaTitle}>{item.ingreName}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-            {/* available sizes */}
-            <View style={styles.sizes}>
-                {Object.values(pizzaSizes).map(item => (
-                    <TouchableOpacity
-                        style={styles.sizeTouch}
-                        onPress={() => {
-                            setTotal(total + item.fee)
-                            setSizeName(item.sizeName)
-                        }}
-                    >
-                        <Text style={styles.sizeTitle}>{item.sizeName}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-            {/* continue to delivery button */}
-            {ProccedToDelivery()}
+      {/* Size selection */}
+      <View style={styles.sizeContainer}>
+        <Text style={styles.sizeTitle}>Select Size:</Text>
+        <View style={styles.sizeOptions}>
+          {Object.values(pizzaSizes).map((size) => (
+            <TouchableOpacity
+              key={size.sizeName}
+              style={[
+                styles.sizeButton,
+                selectedSize === size.sizeName && styles.selectedSizeButton,
+              ]}
+              onPress={() => handleSizeSelect(size)}
+            >
+              <Text style={styles.sizeButtonText}>
+                {size.sizeName} (+₦{size.fee.toLocaleString()})
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-        </ScrollView>
-    )
+      </View>
+
+      {/* Continue button */}
+      {proceedToDelivery()}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        padding: 20,
-    },
-    heading: {
-        fontSize: 26,
-        textAlign: 'center',
-        color: '#519259',
-        fontWeight: 'bold'
-    },
-    pizzas: {
-        marginTop: 20,
-
-    },
-    pizza: {
-        backgroundColor: '#FFBC80',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 50,
-
-        marginBottom: 5
-    },
-    pizzaTitle: {
-        color: 'black',
-        fontSize: 20,
-        fontWeight: 'bold',
-        textAlign: 'center'
-    },
-    selectedPizza: {
-        backgroundColor: '#519259',
-        marginRight: 5,
-        paddingHorizontal: 10,
-        paddingVertical: 20,
-        borderRadius: 10
-    },
-    selectedTitle: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 20,
-
-    },
-    sizes: {
-        marginTop: 20,
-        flexDirection: 'row',
-        justifyContent: 'space-around'
-    },
-    sizeTouch: {
-        borderWidth: 1,
-        borderColor: '#519259',
-        paddingVertical: 8,
-        paddingHorizontal: 8,
-        borderRadius: 10,
-    },
-    sizeTitle: {
-        color: '#519259',
-        fontSize: 20,
-        fontWeight: 'bold',
-        textAlign: 'center'
-    },
-    billing: {
-        backgroundColor: '#b8b7b7',
-        paddingHorizontal: 10,
-        paddingVertical: 14,
-        marginBottom: 20,
-        marginTop: 20,
-        borderRadius: 10
-    },
-    pizzaBillingTitle: {
-        color: 'gray',
-        textAlign: 'center',
-    },
-    pizzaBillingValue: {
-        fontSize: 38,
-        textAlign: 'center'
-    },
-
-    btnNormal: {
-        borderColor: 'blue',
-        borderWidth: 1,
-        borderRadius: 10,
-        height: 30,
-        width: 100,
-    },
-    btnPress: {
-        borderColor: 'blue',
-        borderWidth: 1,
-        height: 30,
-        width: 100,
-    },
-    btn: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        display: 'flex'
-    }
-})
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: Theme.colors.bg.primary,
+  },
+  heading: {
+    fontSize: 26,
+    textAlign: "center",
+    color: Theme.colors.ui.primary,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  billingContainer: {
+    backgroundColor: Theme.colors.bg.secondary,
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  billingTitle: {
+    color: Theme.colors.text.secondary,
+    textAlign: "center",
+    fontSize: Theme.fonts.size.body,
+  },
+  billingAmount: {
+    fontSize: 28,
+    textAlign: "center",
+    fontWeight: "bold",
+    color: Theme.colors.text.primary,
+  },
+  billingDescription: {
+    color: Theme.colors.text.secondary,
+    textAlign: "center",
+    fontSize: Theme.fonts.size.caption,
+  },
+  pizzaScroll: {
+    paddingBottom: 10,
+  },
+  pizzaOption: {
+    marginRight: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: Theme.colors.ui.disabled,
+  },
+  selectedPizzaOption: {
+    backgroundColor: Theme.colors.ui.primary,
+  },
+  pizzaOptionText: {
+    color: Theme.colors.text.primary,
+    fontWeight: "bold",
+  },
+  ingredientsContainer: {
+    flex: 1,
+    marginTop: 10,
+  },
+  ingredientButton: {
+    backgroundColor: Theme.colors.ui.secondary,
+    padding: 12,
+    borderRadius: 25,
+    marginBottom: 8,
+    alignSelf: "flex-start",
+  },
+  selectedIngredientButton: {
+    backgroundColor: Theme.colors.ui.primary,
+  },
+  ingredientText: {
+    color: Theme.colors.text.primary,
+    fontSize: Theme.fonts.size.body,
+  },
+  sizeContainer: {
+    marginTop: 20,
+  },
+  sizeTitle: {
+    fontSize: Theme.fonts.size.title,
+    color: Theme.colors.text.primary,
+    marginBottom: 10,
+  },
+  sizeOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  sizeButton: {
+    borderWidth: 1,
+    borderColor: Theme.colors.ui.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginBottom: 10,
+    minWidth: "30%",
+  },
+  selectedSizeButton: {
+    backgroundColor: Theme.colors.ui.primary,
+  },
+  sizeButtonText: {
+    color: Theme.colors.text.primary,
+    textAlign: "center",
+    fontSize: Theme.fonts.size.body,
+  },
+  continueButton: {
+    marginTop: 20,
+    backgroundColor: Theme.colors.ui.primary,
+    borderRadius: 10,
+  },
+  buttonContent: {
+    paddingVertical: 8,
+  },
+});

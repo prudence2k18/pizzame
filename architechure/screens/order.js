@@ -1,152 +1,234 @@
-import { useState } from 'react';
-import * as React from 'react';
-import { View, Text, StyleSheet, Alert, Image, TextInput, ScrollView } from 'react-native';
-import { Button, } from 'react-native-paper';
-import { Theme } from '../theme/theme';
-import { db } from '../../services/firebase';
-import { doc, setDoc, updateDoc, collection} from 'firebase/firestore';
+import { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import { Button } from "react-native-paper";
+import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
+import { Theme } from "../theme/Theme";
+import { validateEmail, validatePhone } from "../utils/validation";
 
 export function Order({ navigation, route }) {
+  const { total, pizzaName, ingredients, size } = route.params;
 
-    const {orderTotal,
-           orderPizzaName, 
-           orderPizzaIngredients, 
-           orderPizzaSize
-        } = route.params
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: "",
+    coords: null,
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [email, setEmail] = useState('');
-    const [Phone, setPhone] = useState('');
-    const [address, setAddress] = useState('');
+  useEffect(() => {
+    setErrors({});
+  }, [form]);
 
+  const handleChange = (name, value) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
-    function create() {
-        const now = new Date();
-        const nowTimestamp = now.getTime(); 
+  const validateForm = () => {
+    const newErrors = {};
 
-        addDoc(collection(db, 'purchases', '10KYs9w9jzJOnBYY2T2r'), {
-            address: address,
-            email: email,
-            firstname: firstName,
-            lastname: lastName,
-            phone: Phone,
-            pizzaname: 'vfghr',
-            price: 'wrfwefewf',
-            size: "wefwefw",
-            timestamp: nowTimestamp,
-        })
-        .then(() => {
-            Alert.alert(
-                'Order Confirmation',
-                'We have recieved your order.',
-                [{ text: 'Okay, Thanks', onPress: () => {navigation.navigate('Home')} }]
-            )
-        })
-    }
+    if (!form.firstName.trim()) newErrors.firstName = "First name is required";
+    if (!form.lastName.trim()) newErrors.lastName = "Last name is required";
+    if (!validateEmail(form.email)) newErrors.email = "Invalid email address";
+    if (!validatePhone(form.phone)) newErrors.phone = "Invalid phone number";
+    if (!form.address) newErrors.address = "Delivery address is required";
 
-    //update document on firestore
-    function updatedDocument () {
-        updateDoc((db,'purchases','10KYs9w9jzJOnBYY2T2r'),{
-            firstName:'Prudence',
-            lastName:'isaac'
-        })
-        .then(() => console.log('Record updated'))
-        .catch(error => console.log('Error message:',error))
-    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    return (
-        <ScrollView style={styles.container}>
-            {/* show customized pizza info here  */}
-            <View style={styles.infoCont}>
-                <View >
-                    <Image style={styles.img} source={require('../../assets/images/pizza.png')} />
-                </View>
+  const handleSubmit = () => {
+    if (!validateForm()) return;
 
-                <View style={styles.pizzaInfo}>
-                    <Text style={styles.pizzameName}></Text>
-                    <Text style={styles.pizzameSpices}></Text>
-                </View>
+    setIsLoading(true);
 
-                <View style={styles.billSect}>
-                    <Text style={styles.bill}></Text>
-                </View>
+    setTimeout(() => {
+      setIsLoading(false);
+      navigation.navigate("Checkout", {
+        price: total,
+        pizzaName,
+        ingredients,
+        size,
+        fname: form.firstName,
+        lname: form.lastName,
+        email: form.email,
+        phone: form.phone,
+        lat: form.coords?.latitude || 0,
+        lon: form.coords?.longitude || 0,
+        address: form.address,
+      });
+    }, 1000);
+  };
 
-                <View style={styles.sizeSect}>
-                    <Text style={styles.sizes}></Text>
-                </View>
-            </View>
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Text style={styles.title}>Place Your Order</Text>
 
-            {/* first name, last name, phone, email, address */}
-            
-                <View style={styles.delivery}>
-                    <Text style={styles.heading}>Order {orderPizzaName} pizza</Text>
-                    <TextInput keyboardType='default' placeholder="first name" style={styles.input}
-                        onChangeText={(fname) => { setFirstName(fname) }} />
-                    <TextInput keyboardType='default' placeholder="last name" style={styles.input}
-                        onChangeText={(lname) => { setLastName(lname) }} />
-                    <TextInput keyboardType='email-address' placeholder="email adress" style={styles.input}
-                        onChangeText={(email) => { setEmail(email) }} />
-                    <TextInput keyboardType='numeric' placeholder="phone number" style={styles.input}
-                        onChangeText={(phone) => { setPhone(phone) }} />
-                    <TextInput keyboardType='default' placeholder="Address" style={styles.input}
-                        onChangeText={(phone) => { setAddress(phone) }} />
-                </View>
+        <View style={styles.formGroup}>
+          <TextInput
+            placeholder="First Name"
+            style={[styles.input, errors.firstName && styles.inputError]}
+            value={form.firstName}
+            onChangeText={(text) => handleChange("firstName", text)}
+          />
+          {errors.firstName && (
+            <Text style={styles.errorText}>{errors.firstName}</Text>
+          )}
+        </View>
 
-            
+        <View style={styles.formGroup}>
+          <TextInput
+            placeholder="Last Name"
+            style={[styles.input, errors.lastName && styles.inputError]}
+            value={form.lastName}
+            onChangeText={(text) => handleChange("lastName", text)}
+          />
+          {errors.lastName && (
+            <Text style={styles.errorText}>{errors.lastName}</Text>
+          )}
+        </View>
 
+        <View style={styles.formGroup}>
+          <TextInput
+            placeholder="Email Address"
+            style={[styles.input, errors.email && styles.inputError]}
+            value={form.email}
+            onChangeText={(text) => handleChange("email", text)}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+        </View>
 
-            <Button mode='outlined' color='white'
-                style={{ marginTop: 20, backgroundColor: Theme.colors.ui.primary }} contentStyle={{ paddingVertical: 20 }}
-                onPress={create}
-            >Complete Order
+        <View style={styles.formGroup}>
+          <TextInput
+            placeholder="Phone Number"
+            style={[styles.input, errors.phone && styles.inputError]}
+            value={form.phone}
+            onChangeText={(text) => handleChange("phone", text)}
+            keyboardType="phone-pad"
+          />
+          {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+        </View>
 
+        <View style={styles.formGroup}>
+          <Text style={styles.sectionTitle}>Delivery Address</Text>
+          <GooglePlacesAutocomplete
+            placeholder="Enter delivery address"
+            styles={{
+              textInput: [styles.input, errors.address && styles.inputError],
+              listView: styles.listView,
+              description: styles.description,
+              row: styles.row,
+            }}
+            fetchDetails={true}
+            query={{
+              key: "",
+              language: "en",
+              components: "",
+            }}
+            onPress={(data, details = null) => {
+              handleChange("address", data.description);
+              handleChange("coords", details.geometry.location);
+              setErrors((prev) => ({ ...prev, address: undefined }));
+            }}
+            onFail={(error) => console.error(error)}
+            debounce={300}
+          />
+          {errors.address && (
+            <Text style={styles.errorText}>{errors.address}</Text>
+          )}
+        </View>
 
-            </Button>
-
-
-
-        </ScrollView>
-    )
+        <Button
+          mode="contained"
+          loading={isLoading}
+          disabled={isLoading}
+          style={styles.submitButton}
+          contentStyle={styles.buttonContent}
+          onPress={handleSubmit}
+        >
+          Complete Your Order
+        </Button>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        padding:10,
-        flex:1
-    },
-    delivery:{
-        justifyContent: 'space-evenly'
-    },
-    input:{
-        borderWidth:1,
-        borderColor:'gray',
-        paddingHorizontal:10,
-        paddingVertical:12,
-        borderRadius:50,
-        marginBottom:10,
-        backgroundColor:'#fff'
-        
-    },
-    heading:{
-        fontSize:28,
-        textAlign:'center',
-        marginBottom:16
-    },
-    orderNow:{
-        paddingHorizontal:10,
-        paddingVertical:12,
-        borderRadius:50,
-        backgroundColor:'#064635' 
-    },
-    orderNowText:{
-        fontSize:28,
-        textAlign:'center',
-        fontWeight:'bold',
-        color:'#fff'
-    },
-    img: {
-        height: 150,
-        width: 150,
-    }
-})
+  container: {
+    flex: 1,
+    backgroundColor: Theme.colors.bg.primary,
+  },
+  scrollContainer: {
+    padding: Theme.spacing.md,
+    paddingBottom: Theme.spacing.xl,
+  },
+  title: {
+    fontSize: Theme.fonts.size.h4,
+    fontWeight: Theme.fonts.weight.bold,
+    color: Theme.colors.text.primary,
+    textAlign: "center",
+    marginBottom: Theme.spacing.lg,
+  },
+  formGroup: {
+    marginBottom: Theme.spacing.md,
+  },
+  input: {
+    backgroundColor: Theme.colors.bg.secondary,
+    borderRadius: Theme.sizes.borderRadius.md,
+    padding: Theme.spacing.sm,
+    fontSize: Theme.fonts.size.body,
+    color: Theme.colors.text.primary,
+    borderWidth: 1,
+    borderColor: Theme.colors.ui.disabled,
+  },
+  inputError: {
+    borderColor: Theme.colors.ui.error,
+  },
+  errorText: {
+    color: Theme.colors.ui.error,
+    fontSize: Theme.fonts.size.caption,
+    marginTop: Theme.spacing.xs,
+  },
+  sectionTitle: {
+    fontSize: Theme.fonts.size.body,
+    fontWeight: Theme.fonts.weight.medium,
+    color: Theme.colors.text.secondary,
+    marginBottom: Theme.spacing.sm,
+  },
+  submitButton: {
+    marginTop: Theme.spacing.lg,
+    backgroundColor: Theme.colors.ui.primary,
+    borderRadius: Theme.sizes.borderRadius.lg,
+  },
+  buttonContent: {
+    height: Theme.sizes.buttonHeight,
+  },
+  listView: {
+    backgroundColor: Theme.colors.bg.secondary,
+    borderRadius: Theme.sizes.borderRadius.md,
+    marginTop: 4,
+  },
+  description: {
+    color: Theme.colors.text.primary,
+  },
+  row: {
+    backgroundColor: Theme.colors.bg.secondary,
+  },
+});

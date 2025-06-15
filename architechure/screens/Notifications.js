@@ -1,7 +1,7 @@
-import { Text } from "react-native-paper";
+import { Text } from "react-native";
 
 export function Notifications () {
     return (
-        <Text>Notification</Text>
+        <Text>Notifications</Text>
     )
 }

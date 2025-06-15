@@ -1,4 +1,7 @@
-import { StatusBar as ExpoSatusBar } from 'expo-status-bar';
+console.log("🔥 Firebase DB is:", db);
+import { db } from './services/firebase'; // Ensure this path is correct
+console.log("🔥 Firebase DB is:", db);
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, SafeAreaView, StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { AuthNavigator } from './architechure/components/AuthNavigation';
@@ -10,10 +13,9 @@ export default function App() {
       <NavigationContainer>
         <AuthNavigator />
       </NavigationContainer>
-      <ExpoSatusBar style="auto" />
+      {/* <Maps /> */}
+      <ExpoStatusBar style="auto" />
     </SafeAreaView>
-
-    // <Maps />
   );
 }
 

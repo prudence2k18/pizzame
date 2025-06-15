@@ -3,7 +3,7 @@ import {useFonts, Pacifico_400Regular } from '@expo-google-fonts/pacifico';
 import { Overpass_100Thin, Overpass_200ExtraLight } from '@expo-google-fonts/overpass';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faArrowRightToBracket } from '@fortawesome/free-solid-svg-icons';
-import { Theme } from '../theme/theme';
+import { Theme } from '../theme/Theme';
 
 export function Header () {
     let [FontsLoaded] = useFonts({
@@ -20,7 +20,7 @@ export function Header () {
                     <Text style={Styles.brandName}>Pizzame</Text>
                 </View>
                 <TouchableOpacity>
-                    <FontAwesomeIcon icon={faArrowRightToBracket} size={Theme.points[4]}/>
+                    <FontAwesomeIcon icon={faArrowRightToBracket} size={Theme.sizes.icon}/>
                 </TouchableOpacity>
             </View>
     )
@@ -30,7 +30,7 @@ const Styles = StyleSheet.create({
     header: {
         flexDirection:'row',
         justifyContent:'space-between',
-        paddingTop:Theme.points[2]
+        paddingTop: Theme.spacing.md
     },
 
     brand:{
@@ -40,7 +40,7 @@ const Styles = StyleSheet.create({
     logo:{
         width:48,
         height:48,
-        marginRight:Theme.points[1]
+        marginRight: Theme.spacing.sm
     }, 
 
     signinIcon:{
@@ -49,7 +49,7 @@ const Styles = StyleSheet.create({
     },
 
     brandName: {
-        fontSize:Theme.points[4],
+        fontSize: Theme.fonts.size.title,
         fontWeight: 'bold',
         fontFamily:'Pacifico_400Regular'
     },
